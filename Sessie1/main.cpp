@@ -82,7 +82,7 @@ int main(int argc, const char** argv)
     //}
     //waitKey(0);
 
-    // dilating van mask
+    // eroding van mask
     erode( mask.clone(), mask, Mat(), Point(-1, -1), 2 );
     imshow("masker eroded", mask);
     waitKey(0);
@@ -92,10 +92,20 @@ int main(int argc, const char** argv)
     imshow("masker dilated", mask);
     waitKey(0);
 
-    // hand en arm terug samenvoegen
-    dilate(mask.clone(), mask, Mat(), Point(-1, -1), 10);
-    erode(mask.clone(), mask, Mat(), Point(-1, -1), 5);
-    imshow("finaal masker", mask);
+    // ledematen terug verbinden
+    dilate( mask.clone(), mask, Mat(), Point(-1, -1), 5 );
+    erode( mask.clone(), mask, Mat(), Point(-1, -1), 5 );
+
+    vector< vector<Point> > contours;
+    findContours(mask.clone(), contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
+    vector< vector<Point> > hulls;
+    for(size_t i=0; i<contours.size(); i++){
+        vector<Point> hull;
+        convexHull(contours[i], hull);
+        hulls.push_back(hull);
+    }
+    drawContours(mask, hulls, -1, 255, -1);
+    imshow("masker finaal", mask);
     waitKey(0);
 
     // Masker combineren met originele figuur
