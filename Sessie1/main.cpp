@@ -74,12 +74,6 @@ int main(int argc, const char** argv)
     imshow("Mask", mask);
     waitKey(0);
 
-    // Binair masker opschonen en ruis onderdrukken findcontour: RETR_EXTERNAL gebruiken!!
-    Mat maskBewerktOpen;
-    maskBewerkt = open(mask, maskBewerktOpen);
-    imshow("Masker bewerkt", maskBewerktOpen);
-    waitKey(0);
-
     //Pixelwaarden tonen
     //for(int i=0; i<colorImage.rows; i++){
     //    for(int j=0; j<colorImage.cols; j++){
@@ -87,6 +81,22 @@ int main(int argc, const char** argv)
     //    }
     //}
     //waitKey(0);
+
+    // dilating van mask
+    erode( mask.clone(), mask, Mat(), Point(-1, -1), 2 );
+    imshow("masker eroded", mask);
+    waitKey(0);
+
+    // dilating van mask
+    dilate( mask.clone(), mask, Mat(), Point(-1, -1), 2 );
+    imshow("masker dilated", mask);
+    waitKey(0);
+
+    // hand en arm terug samenvoegen
+    dilate(mask.clone(), mask, Mat(), Point(-1, -1), 10);
+    erode(mask.clone(), mask, Mat(), Point(-1, -1), 5);
+    imshow("finaal masker", mask);
+    waitKey(0);
 
     // Masker combineren met originele figuur
 
