@@ -247,4 +247,4 @@ Mat BruteForceMatch(Mat image, Mat object)
 
     return matchImage;
 }
-//--i1=/home/student/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/fitness_image.png --i2=/home/student/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/fitness_object.png --i3=/home/student/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/kinderbueno_image.png --i4=/home/student/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/kinderbueno_object.png
+//--i1=/home/laurens/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/fitness_image.png --i2=/home/laurens/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/fitness_object.png --i3=/home/laurens/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/kinderbueno_image.png --i4=/home/laurens/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/kinderbueno_object.png

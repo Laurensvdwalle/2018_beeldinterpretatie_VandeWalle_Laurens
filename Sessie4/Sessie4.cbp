@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="--i1=/home/student/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/fitness_image.png --i2=/home/student/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/fitness_object.png --i3=/home/student/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/kinderbueno_image.png --i4=/home/student/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/kinderbueno_object.png " />
+				<Option parameters="--i1=/home/laurens/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/fitness_image.png --i2=/home/laurens/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/fitness_object.png --i3=/home/laurens/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/kinderbueno_image.png --i4=/home/laurens/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie4/kinderbueno_object.png" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -34,7 +34,8 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
-			<Add option="-fexceptions" />
+			<Add option="`pkg-config opencv --cflags`" />
+			<Add directory="/home/laurens/opencv/include/opencv2/opencv" />
 		</Compiler>
 		<Linker>
 			<Add option="`pkg-config opencv --libs`" />
