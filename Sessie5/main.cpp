@@ -14,9 +14,6 @@ vector<Point> punten[2];
 int welkePunten;
 
 static void onMouse(int event, int x, int y, int flags, void* userdata);
-Ptr<KNearest> trainKNN(Mat trainingDataTot, Mat labels, int K);
-void Masks(Mat hsvImage, Ptr<KNearest> kclassifier);
-
 int main(int argc, const char** argv)
 {
     // CommandlineParser opstarten
@@ -56,10 +53,10 @@ int main(int argc, const char** argv)
     }
 
     // images tonen
-    imshow("strawberry 1", strawIn1);
-    imshow("strawberry 2", strawIn2);
-    waitKey(0);
-    destroyAllWindows();
+    //imshow("strawberry 1", strawIn1);
+    //imshow("strawberry 2", strawIn2);
+    //waitKey(0);
+    //destroyAllWindows();
 
     // image waar we mee willen werken
     Mat img;
@@ -89,12 +86,15 @@ int main(int argc, const char** argv)
 
     // image converteren naar hsv
     Mat hsvImage;
-    cvtColor(img,hsvImage, CV_BGR2HSV);
+    cvtColor(img, hsvImage, CV_BGR2HSV);
     GaussianBlur( hsvImage, hsvImage, Size( 5, 5 ), 0, 0 );
 
+    //imshow("hsv Image", hsvImage);
+    //waitKey(0);
+
     // goede waarden inlezen
-    Mat trainingDataGoed(punten[GOED].size(), 3, CV_32FC1);     // trainingdata, met 3 waarden: h, s en v
-    Mat labelsGoed(punten[GOED].size(), 1, CV_32SC1);           // labels, met 1 waarden: GOED of SLECHT
+    Mat trainingDataGoed(punten[GOED].size(), 3, CV_32FC1);         // trainingdata, met 3 waarden: h, s en v
+    Mat labelsGoed = Mat::ones(punten[GOED].size(), 1, CV_32SC1); // labels, met 1 waarden: GOED of SLECHT
 
     for( unsigned i=0 ; i<punten[GOED].size() ; i++)
     {
@@ -102,12 +102,12 @@ int main(int argc, const char** argv)
         trainingDataGoed.at<float>(i,0) = descriptor[0];
         trainingDataGoed.at<float>(i,1) = descriptor[1];
         trainingDataGoed.at<float>(i,2) = descriptor[2];
-        labelsGoed.at<float>(i) = GOED;
+        labelsGoed.at<float>(i) = 1;
     }
 
     // slecht waarden inlezen
-    Mat trainingDataSlecht(punten[SLECHT].size(), 3, CV_32FC1); // trainingdata, met 3 waarden: h, s en v
-    Mat labelsSlecht(punten[SLECHT].size(), 1, CV_32SC1);       // labels, met 1 waarden: GOED of SLECHT
+    Mat trainingDataSlecht(punten[SLECHT].size(), 3, CV_32FC1);         // trainingdata, met 3 waarden: h, s en v
+    Mat labelsSlecht = Mat::zeros(punten[SLECHT].size(), 1, CV_32SC1);  // labels, met 1 waarden: GOED of SLECHT
 
     for( unsigned i=0 ; i<punten[SLECHT].size() ; i++)
     {
@@ -115,7 +115,7 @@ int main(int argc, const char** argv)
         trainingDataSlecht.at<float>(i,0) = descriptor[0];
         trainingDataSlecht.at<float>(i,1) = descriptor[1];
         trainingDataSlecht.at<float>(i,2) = descriptor[2];
-        labelsSlecht.at<float>(i) = SLECHT;
+        labelsSlecht.at<float>(i) = 0;
     }
 
     // samenvoegen goede en slechte trainingdata
@@ -123,12 +123,92 @@ int main(int argc, const char** argv)
     vconcat(trainingDataGoed, trainingDataSlecht, trainingDataTot);
     vconcat(labelsGoed, labelsSlecht, labels);
 
-    // KNN trainen
-    Ptr<KNearest> kclassifier;
-    kclassifier = trainKNN(trainingDataTot, labels, 3);
+    // KNN
+    Ptr<TrainData> trainingData;
+    Ptr<KNearest> kclassifier=KNearest::create();
+    trainingData=TrainData::create(trainingDataTot, SampleTypes::ROW_SAMPLE, labels);
+    kclassifier->setIsClassifier(true);
+    kclassifier->setAlgorithmType(KNearest::Types::BRUTE_FORCE);
+    kclassifier->setDefaultK(1);
+    kclassifier->train(trainingData);
 
-    // Masks aanmaken
-    Masks(hsvImage, kclassifier);
+    // Normal Bayes
+    Ptr<NormalBayesClassifier> nbclassifier = NormalBayesClassifier::create();
+    nbclassifier->train(trainingDataTot, ROW_SAMPLE, labels);
+
+    // SVM
+    Ptr<SVM> svmclassifier = SVM::create();
+    svmclassifier->setType(SVM::C_SVC);
+    svmclassifier->setKernel(SVM::LINEAR);
+    svmclassifier->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, 100, 1e-6));
+    svmclassifier->train(trainingDataTot, ROW_SAMPLE, labels);
+
+    // masks aanmaken
+    Mat KNNMask = Mat::zeros(hsvImage.rows, hsvImage.cols, CV_8UC1);
+    Mat KNNLabels;
+    Mat BNMask = Mat::zeros(hsvImage.rows, hsvImage.cols, CV_8UC1);
+    Mat BNLabels;
+    Mat SVMMask = Mat::zeros(hsvImage.rows, hsvImage.cols, CV_8UC1);
+    Mat SVMLabels;
+
+    for( int i=0 ; i<hsvImage.rows ; i++)
+    {
+        for( int j=0 ; j<hsvImage.cols ; j++)
+        {
+            Vec3b pixel = hsvImage.at<Vec3b>(i, j);
+            Mat hsvPixel(1, 3, CV_32FC1);
+
+            hsvPixel.at<float>(0, 0) = pixel[0];
+            hsvPixel.at<float>(0, 1) = pixel[1];
+            hsvPixel.at<float>(0, 2) = pixel[2];
+
+            kclassifier->findNearest(hsvPixel, kclassifier->getDefaultK(), KNNLabels);
+            nbclassifier->predict(hsvPixel, BNLabels);
+            svmclassifier->predict(hsvPixel, SVMLabels);
+
+            if( KNNLabels.at<float>(0, 0) != 0)
+            {
+                KNNMask.at<uchar>(i, j) = 1;
+            }
+
+            if( BNLabels.at<float>(0, 0) != 0)
+            {
+                BNMask.at<uchar>(i, j) = 1;
+            }
+
+            if( SVMLabels.at<float>(0, 0) == 0)
+            {
+                SVMMask.at<uchar>(i, j) = 1;
+            }
+        }
+    }
+
+    // erosie en dilatie van de masks
+    erode(KNNMask, KNNMask, Mat(), Point(-1, -1), 2, 1, 1);
+    dilate(KNNMask, KNNMask, Mat(), Point(-1, -1), 2, 1, 1);
+
+    erode(BNMask, BNMask, Mat(), Point(-1, -1), 2, 1, 1);
+    dilate(BNMask, BNMask, Mat(), Point(-1, -1), 2, 1, 1);
+
+    erode(SVMMask, SVMMask, Mat(), Point(-1, -1), 2, 1, 1);
+    dilate(SVMMask, SVMMask, Mat(), Point(-1, -1), 2, 1, 1);
+
+    KNNMask = KNNMask*255;
+    BNMask = BNMask*255;
+    SVMMask = SVMMask*255;
+
+    Mat KNNImage;
+    Mat BNImage;
+    Mat SVMImage;
+
+    img.copyTo(KNNImage, KNNMask);
+    img.copyTo(BNImage, BNMask);
+    img.copyTo(SVMImage, SVMMask);
+
+    imshow("Image met KNN mask", KNNImage);
+    imshow("Image met BN mask", BNImage);
+    imshow("Image met SVM mask", SVMImage);
+    waitKey(0);
 
     return 0;
 }
@@ -174,52 +254,5 @@ static void onMouse(int event, int x, int y, int flags, void* userdata)
             cout << "Punt op (x=" << punten[welkePunten][punt].x << " y=" << punten[welkePunten][punt].y << ")" << endl;
         }
     }
-}
-
-Ptr<KNearest> trainKNN(Mat trainingDataTot, Mat labels, int K)
-{
-    // KNN aanmaken
-    Ptr<TrainData> trainingData;
-    Ptr<KNearest> kclassifier=KNearest::create();
-
-    trainingData=TrainData::create(trainingDataTot, SampleTypes::ROW_SAMPLE, labels);
-
-    kclassifier->setIsClassifier(true);
-    kclassifier->setAlgorithmType(KNearest::Types::BRUTE_FORCE);
-    kclassifier->setDefaultK(K);
-
-    // KNN trainen
-    kclassifier->train(trainingData);
-
-    return kclassifier;
-}
-
-void Masks(Mat hsvImage, Ptr<KNearest> kclassifier)
-{
-    // masks aanmaken
-    Mat KNNMask = Mat::zeros(hsvImage.rows, hsvImage.cols, CV_8UC1);
-    Mat KNNLabels;
-
-    for( int i=0 ; i<hsvImage.rows ; i++)
-    {
-        for( int j=0 ; j<hsvImage.cols ; j++)
-        {
-            Vec3b pixel = hsvImage.at<Vec3b>(i, j);
-            Mat hsvPixel(1, 3, CV_32FC1);
-
-            hsvPixel.at<float>(0, 0) = pixel[0];
-            hsvPixel.at<float>(0, 1) = pixel[1];
-            hsvPixel.at<float>(0, 2) = pixel[2];
-
-            kclassifier->findNearest(hsvPixel, kclassifier->getDefaultK(), KNNLabels);
-
-            KNNMask.at<uchar>(i, j) = KNNLabels.at<float>(0, 0);
-        }
-    }
-
-    KNNMask = KNNMask*255;
-
-    imshow("KNN mask", KNNMask);
-    waitKey(0);
 }
 //--i1=/home/laurens/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie5/strawberry1.tif --i2=/home/laurens/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie5/strawberry1.tif
