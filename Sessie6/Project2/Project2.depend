@@ -1,0 +1,5 @@
+# depslib dependency file v1.0
+1544631316 source:/home/student/Documents/Laurens/2018_beeldinterpretatie_VandeWalle_Laurens/Sessie6/Project2/main.cpp
+	<iostream>
+	<opencv2/opencv.hpp>
+
