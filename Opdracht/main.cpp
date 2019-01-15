@@ -82,7 +82,6 @@ int main(int argc, const char** argv)
     int hammers_begin = -1;
     int hammers_present = 0;
 
-
     while( true )
     {
         capture >> frame;
@@ -104,15 +103,20 @@ int main(int argc, const char** argv)
             time_ladder += 1.0/fps;
         }
 
-        hammers_present = countHammers(frame_gray, hamm);
-
-        if(hammers_begin = -1)
+        if(time_total >= 4)
         {
-            hammers_begin = hammers_present;
+            hammers_present = countHammers(frame_gray, hamm);
+
+            if(hammers_begin == -1)
+            {
+                hammers_begin = hammers_present;
+            }
+
+            hammers = hammers_begin-hammers_present;
+
+            cout << "hammers begin: " << hammers_begin << " hammers present: " << hammers_begin << " hammers total: " << hammers << endl;
+
         }
-
-        hammers = hammers_begin-hammers_present;
-
         stat = createStatFrame(time_total, time_ladder, hammers);
 
         polylines(frame, locations, false, Scalar(255, 255, 255));
@@ -265,6 +269,7 @@ int countHammers(Mat frame_gray, Mat hamm)
     inRange(result, maxValue * thresh, maxValue, match_result_thresh);
 
     match_result_thresh.convertTo(match_result_thresh, CV_8UC1);
+    imshow("result_thresh", match_result_thresh);
 
     vector<vector<Point>> contouren;
     findContours(match_result_thresh, contouren, RETR_EXTERNAL, CHAIN_APPROX_NONE);
